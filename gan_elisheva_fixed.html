@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>תוכנית שנתית - גן אלישבע</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8f5e9 100%);
+            padding: 20px;
+            min-height: 100vh;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c5f2d;
+            margin-bottom: 0.5rem;
+            font-size: 28px;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            padding: 10px;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: #e8f5e9;
+            color: #2c5f2d;
+        }
+
+        .status.disconnected {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-right: 4px solid #2c5f2d;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c5f2d;
+            margin-bottom: 1rem;
+        }
+
+        .months-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .month-btn {
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+        }
+
+        .month-btn.active {
+            background: #2c5f2d;
+            color: white;
+            border-color: #2c5f2d;
+            font-weight: 700;
+        }
+
+        .selected-month {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c5f2d;
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+
+        #task-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+        }
+
+        #task-input:focus {
+            outline: none;
+            border-color: #2c5f2d;
+            box-shadow: 0 0 0 3px rgba(44, 95, 45, 0.1);
+        }
+
+        #add-btn {
+            padding: 10px 20px;
+            background: #2c5f2d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        #add-btn:hover {
+            background: #1e4620;
+        }
+
+        #add-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+
+        .task-item span {
+            color: #333;
+            flex: 1;
+        }
+
+        .delete-btn {
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid #d32f2f;
+            color: #d32f2f;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .delete-btn:hover {
+            background: #ffebee;
+        }
+
+        .empty-message {
+            color: #999;
+            font-size: 13px;
+            text-align: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            background: #e8f5e9;
+            border-bottom: 2px solid #2c5f2d;
+        }
+
+        th {
+            padding: 12px;
+            text-align: right;
+            color: #2c5f2d;
+            font-weight: 600;
+            border-right: 1px solid #ddd;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            color: #333;
+        }
+
+        td:first-child {
+            background: #f5f5f5;
+            font-weight: 500;
+            color: #2c5f2d;
+            width: 120px;
+            border-right: 1px solid #ddd;
+        }
+
+        ul {
+            margin: 0;
+            padding-right: 15px;
+            list-style: disc;
+        }
+
+        li {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+
+        .summary-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #e8f5e9;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .summary-total {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c5f2d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 תוכנית שנתית - גן אלישבע</h1>
+        <div class="status" id="status">טוען...</div>
+
+        <div class="section">
+            <div class="section-title">📝 הוסיפו פעילויות ליעדים</div>
+            
+            <div class="months-grid" id="months-grid"></div>
+            
+            <div class="selected-month" id="selected-month">ינואר</div>
+            
+            <div class="input-group">
+                <input type="text" id="task-input" placeholder="הקלידו פעילות...">
+                <button id="add-btn">הוסף</button>
+            </div>
+
+            <div id="tasks-list"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📊 התוכנית השנתית</div>
+            
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>חודש</th>
+                            <th>פעילויות וביעדים</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="2" class="no-data">טוען...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="summary-box">
+                <div>סך כל הפעילויות:</div>
+                <div class="summary-total" id="summary-total">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ksfxslsarcmpjmwzlxam.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_ccVMY6mHJDnLvP-MMxLkGw_TooS0qFs';
+
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const monthsHe = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", 
+                          "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+
+        let selectedMonth = 0;
+        let allTasks = [];
+        let connected = false;
+
+        // בדיקת חיבור
+        async function init() {
+            try {
+                console.log('מתחברים ל-Supabase...');
+                
+                const { data, error } = await supabase
+                    .from('taknit')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) {
+                    throw new Error(error.message);
+                }
+                
+                console.log('✅ מחובר בהצלחה!');
+                connected = true;
+                updateStatus(true);
+                
+                // טעינת נתונים
+                await loadTasks();
+                
+                // האזנה לשינויים
+                subscribeToChanges();
+            } catch (error) {
+                console.error('❌ שגיאת חיבור:', error);
+                connected = false;
+                updateStatus(false);
+            }
+        }
+
+        function updateStatus(isConnected) {
+            const statusEl = document.getElementById('status');
+            if (isConnected) {
+                statusEl.textContent = '✅ מחובר לשרת (שיתוף בזמן אמת)';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = '❌ לא מחובר לשרת - אנא רעננו את העמוד';
+                statusEl.className = 'status disconnected';
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                const { data, error } = await supabase
+                    .from('taknit')
+                    .select('*')
+                    .order('chodeshs', { ascending: true });
+                
+                if (error) throw error;
+                
+                allTasks = data || [];
+                console.log('✅ טעינת נתונים בוצעה בהצלחה:', allTasks);
+                
+                updateTable();
+                renderTasks();
+            } catch (error) {
+                console.error('❌ שגיאה בטעינה:', error);
+            }
+        }
+
+        function subscribeToChanges() {
+            supabase
+                .channel('taknit-changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'taknit' },
+                    (payload) => {
+                        console.log('📢 שינוי התקבל:', payload);
+                        loadTasks();
+                    }
+                )
+                .subscribe();
+        }
+
+        function buildMonthButtons() {
+            const grid = document.getElementById('months-grid');
+            monthsHe.forEach((month, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'month-btn' + (idx === 0 ? ' active' : '');
+                btn.textContent = month;
+                btn.onclick = () => selectMonth(idx);
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectMonth(month) {
+            selectedMonth = month;
+            
+            document.querySelectorAll('.month-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === month);
+            });
+            
+            document.getElementById('selected-month').textContent = monthsHe[month];
+            renderTasks();
+            document.getElementById('task-input').focus();
+        }
+
+        function renderTasks() {
+            const tasksList = document.getElementById('tasks-list');
+            tasksList.innerHTML = '';
+            
+            const monthTasks = allTasks.filter(t => t.chodeshs === selectedMonth);
+            
+            if (monthTasks.length === 0) {
+                tasksList.innerHTML = '<div class="empty-message">אין פעילויות בחודש זה עדיין</div>';
+                return;
+            }
+            
+            monthTasks.forEach((task) => {
+                const div = document.createElement('div');
+                div.className = 'task-item';
+                div.innerHTML = `
+                    <span>${task.task}</span>
+                    <button class="delete-btn" onclick="deleteTask(${task.id})">מחק</button>
+                `;
+                tasksList.appendChild(div);
+            });
+        }
+
+        async function addTask() {
+            if (!connected) {
+                alert('לא מחובר לשרת');
+                return;
+            }
+
+            const input = document.getElementById('task-input');
+            const task = input.value.trim();
+            
+            if (!task) {
+                input.focus();
+                return;
+            }
+
+            const btn = document.getElementById('add-btn');
+            btn.disabled = true;
+
+            try {
+                console.log('הוספת פעילות:', task);
+                
+                const { data, error } = await supabase
+                    .from('taknit')
+                    .insert([{ chodeshs: selectedMonth, task: task }]);
+                
+                if (error) throw error;
+                
+                console.log('✅ פעילות נוספה בהצלחה');
+                input.value = '';
+                input.focus();
+                await loadTasks();
+            } catch (error) {
+                console.error('❌ שגיאה בהוספה:', error);
+                alert('שגיאה: ' + error.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteTask(id) {
+            if (!confirm('למחוק?')) return;
+
+            try {
+                const { error } = await supabase
+                    .from('taknit')
+                    .delete()
+                    .eq('id', id);
+                
+                if (error) throw error;
+                
+                console.log('✅ פעילות נמחקה');
+                await loadTasks();
+            } catch (error) {
+                console.error('❌ שגיאה במחיקה:', error);
+                alert('שגיאה: ' + error.message);
+            }
+        }
+
+        function updateTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            let total = 0;
+
+            for (let i = 0; i < 12; i++) {
+                const tasks = allTasks.filter(t => t.chodeshs === i);
+                total += tasks.length;
+                
+                if (tasks.length > 0) {
+                    const row = document.createElement('tr');
+                    
+                    const monthCell = document.createElement('td');
+                    monthCell.textContent = monthsHe[i];
+                    
+                    const tasksCell = document.createElement('td');
+                    const ul = document.createElement('ul');
+                    tasks.forEach(t => {
+                        const li = document.createElement('li');
+                        li.textContent = t.task;
+                        ul.appendChild(li);
+                    });
+                    tasksCell.appendChild(ul);
+                    
+                    row.appendChild(monthCell);
+                    row.appendChild(tasksCell);
+                    tbody.appendChild(row);
+                }
+            }
+            
+            if (total === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" class="no-data">אין נתונים עדיין</td></tr>';
+            }
+            
+            document.getElementById('summary-total').textContent = total;
+        }
+
+        document.getElementById('add-btn').onclick = addTask;
+        document.getElementById('task-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        buildMonthButtons();
+        selectMonth(0);
+        init();
+    </script>
+</body>
+</html>
